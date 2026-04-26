@@ -511,19 +511,28 @@ namespace libtorrent::aux {
 				TORRENT_ASSERT(m_part_file);
 
 				error_code e;
-				peer_request map = files().map_file(file_index
-					, file_offset, 0);
-				TORRENT_ASSERT(bufs.size() == 1);
-				int const ret = m_part_file->write(bufs.front(), map.piece, map.start, e);
-
-				if (e)
+				int bytes_written = 0;
+				for (auto const& buf : bufs)
 				{
-					ec.ec = e;
-					ec.file(file_index);
-					ec.operation = operation_t::partfile_write;
-					return -1;
+					span<char const> remaining = buf;
+					while (!remaining.empty())
+					{
+						peer_request const map = files().map_file(file_index
+							, file_offset + bytes_written, 0);
+						int const ret = m_part_file->write(remaining, map.piece, map.start, e);
+						if (e)
+						{
+							ec.ec = e;
+							ec.file(file_index);
+							ec.operation = operation_t::partfile_write;
+							return -1;
+						}
+						if (ret <= 0) break;
+						bytes_written += ret;
+						remaining = remaining.subspan(ret);
+					}
 				}
-				return ret;
+				return bytes_written;
 			}
 
 			// invalidate our stat cache for this file, since
