@@ -2203,7 +2203,7 @@ TORRENT_TEST(posix_disk_io_part_file)
 //
 // file_defs is a list of (block_count, priority) pairs. All files are packed
 // into a single piece so that the write covers all of them at once.
-void test_write_vec_partfile(
+static void test_write_vec_partfile(
 	std::vector<std::pair<int, download_priority_t>> const& file_defs
 	, lt::storage_mode_t const storage_mode)
 {
@@ -2215,7 +2215,7 @@ void test_write_vec_partfile(
 
 	std::vector<lt::create_file_entry> flist;
 	aux::vector<download_priority_t, file_index_t> priorities;
-	for (int i = 0; i < int(file_defs.size()); ++i)
+	for (std::size_t i = 0; i < file_defs.size(); ++i)
 	{
 		auto const [nblocks, prio] = file_defs[i];
 		flist.emplace_back("vec_test/f" + std::to_string(i) + ".tmp"
@@ -2226,7 +2226,7 @@ void test_write_vec_partfile(
 	lt::create_torrent t(std::move(flist), ps, lt::create_torrent::v1_only);
 	TEST_CHECK(t.num_pieces() == 1);
 
-	std::vector<std::vector<char>> blks(total_blocks);
+	std::vector<std::vector<char>> blks(static_cast<std::size_t>(total_blocks));
 	std::vector<char> full_piece;
 	for (auto& b : blks)
 	{
@@ -2264,7 +2264,7 @@ void test_write_vec_partfile(
 	// any 0-priority file spanning more than one block causes bufs.size() > 1
 	// in the part-file branch of the write lambda.
 	std::vector<span<char const>> buf_spans;
-	buf_spans.reserve(total_blocks);
+	buf_spans.reserve(std::size_t(total_blocks));
 	for (auto const& b : blks) buf_spans.emplace_back(b);
 	span<span<char const> const> const vec_bufs(buf_spans.data()
 		, static_cast<std::ptrdiff_t>(buf_spans.size()));
@@ -2274,7 +2274,7 @@ void test_write_vec_partfile(
 	TEST_CHECK(!ec);
 	if (ec) print_error("write", wret, ec);
 
-	std::vector<char> read_buf(ps);
+	std::vector<char> read_buf(static_cast<std::size_t>(ps));
 	int const rret = s->read(set, read_buf, 0_piece, 0
 		, aux::open_mode::write, disk_job_flags_t{}, ec);
 	TEST_EQUAL(rret, ps);

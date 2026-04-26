@@ -175,21 +175,19 @@ template <typename Char>
 inline span<span<Char>> advance_bufs(span<span<Char>> bufs, int const bytes)
 {
 	TORRENT_ASSERT(bytes >= 0);
+	TORRENT_ASSERT(!bufs.empty());
 	std::ptrdiff_t size = 0;
 	for (;;)
 	{
 		size += bufs.front().size();
-		if (size >= bytes)
+		if (size > bytes)
 		{
 			bufs.front() = bufs.front().last(size - bytes);
-			// if the leading buffer was exactly consumed, skip it so callers
-			// never see a zero-size span at the front
-			if (bufs.front().empty())
-				bufs = bufs.subspan(1);
 			return bufs;
 		}
 		bufs = bufs.subspan(1);
-		if (bufs.empty()) return bufs;
+		if (size == bytes) return bufs;
+		TORRENT_ASSERT(!bufs.empty());
 	}
 }
 
